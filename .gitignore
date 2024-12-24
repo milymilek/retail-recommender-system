@@ -12,8 +12,7 @@ wheels/
 # Virtual environments
 .venv
 
-# Data
+# Data, runtime, logs, etc.
 .data
-
-# Models
-.models
+.runs
+.config
