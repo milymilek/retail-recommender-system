@@ -28,6 +28,3 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def load(self) -> dict[str, pl.DataFrame]: ...
-
-    @abstractmethod
-    def cardinality(self) -> tuple[int, int]: ...

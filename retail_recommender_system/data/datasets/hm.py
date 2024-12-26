@@ -15,8 +15,10 @@ class HMDataset(BaseDataset):
             "items": pl.read_parquet(self.intermediate / "articles.parquet"),
         }
 
-    def cardinality(self) -> tuple[int, int]:
-        n_users = self.data["users"].get_column("customer_id_map").max() + 1  # type: ignore
-        n_items = self.data["items"].get_column("article_id_map").max() + 1  # type: ignore
+    @property
+    def n_users(self) -> int:
+        return self.data["users"].get_column("customer_id_map").max() + 1  # type: ignore
 
-        return n_users, n_items  # type: ignore
+    @property
+    def n_items(self) -> int:
+        return self.data["items"].get_column("article_id_map").max() + 1  # type: ignore
