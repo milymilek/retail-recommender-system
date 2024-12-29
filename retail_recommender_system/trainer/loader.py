@@ -1,15 +1,19 @@
 import json
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from retail_recommender_system.data.datasets.base import BaseDataset
 from retail_recommender_system.logging import init_logger
-from retail_recommender_system.models.deepfm import DeepFM, DeepFMModelConfig
-from retail_recommender_system.models.mf import MF, MFModelConfig
-from retail_recommender_system.trainer.base import BaseTrainer
+from retail_recommender_system.models.deepfm import DeepFM
+from retail_recommender_system.models.mf import MF
 from retail_recommender_system.trainer.deepfm import DeepFMTrainer
 from retail_recommender_system.trainer.mf import MFTrainer
+
+if TYPE_CHECKING:
+    import torch
+
+    from retail_recommender_system.data.datasets.base import BaseDataset
+    from retail_recommender_system.trainer.base import BaseTrainer
 
 logger = init_logger(__name__)
 
@@ -33,14 +37,16 @@ class ModelConfig:
 class TrainConfig:
     valid_size: float
     batch_size: int
+    eval_batch_size: int
+    eval_user_batch_size: int
     neg_sampl: int
     lr: float
     epochs: int
 
 
-def load_trainer(model_config: ModelConfig, train_config: TrainConfig, dataset: BaseDataset) -> BaseTrainer:
+def load_trainer(model_config: ModelConfig, train_config: TrainConfig, dataset: "BaseDataset", device: "torch.device") -> "BaseTrainer":
     logger.info("Model configuration:\n%s", json.dumps(asdict(model_config), indent=2))
     logger.info("Train configuration:\n%s", json.dumps(asdict(train_config), indent=2))
 
     trainer_map = {ModelEnum.MF: MFTrainer, ModelEnum.DeepFM: DeepFMTrainer}
-    return trainer_map[model_config.model_type](model_config, train_config, dataset)
+    return trainer_map[model_config.model_type](model_config, train_config, dataset, device)

@@ -28,3 +28,11 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def load(self) -> dict[str, pl.DataFrame]: ...
+
+    @property
+    @abstractmethod
+    def n_users(self) -> int: ...
+
+    @property
+    @abstractmethod
+    def n_items(self) -> int: ...

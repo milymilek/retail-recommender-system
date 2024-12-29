@@ -9,7 +9,16 @@ class SteamDataset(BaseDataset):
         return "steam"
 
     def load(self) -> dict[str, pl.DataFrame]:
-        return {}
+        return {
+            "relations": pl.read_parquet(self.intermediate / "relations.parquet"),
+            "users": pl.read_parquet(self.intermediate / "users.parquet"),
+            "items": pl.read_parquet(self.intermediate / "games.parquet"),
+        }
 
-    def cardinality(self) -> tuple[int, int]:
-        return 0, 0
+    @property
+    def n_users(self) -> int:
+        return self.data["users"].get_column("customer_id_map").max() + 1  # type: ignore
+
+    @property
+    def n_items(self) -> int:
+        return self.data["items"].get_column("article_id_map").max() + 1  # type: ignore

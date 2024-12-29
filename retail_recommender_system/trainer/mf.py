@@ -1,22 +1,20 @@
 from functools import partial
-from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
-import polars as pl
 import torch
 import torch.nn as nn
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, Dataset, IterableDataset
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from retail_recommender_system.evaluation.metrics import precision_k, recall_k
 from retail_recommender_system.evaluation.prediction import recommend_k
 from retail_recommender_system.logging import init_logger
-from retail_recommender_system.models.mf import MF, MFDataset, MFEvalDataset, MFModelConfig, collate_fn, eval_collate_fn
+from retail_recommender_system.models.mf import MF, MFDataset, MFEvalDataset, MFModelConfig, collate_fn
 from retail_recommender_system.trainer.base import BaseTrainer
 from retail_recommender_system.training import History
-from retail_recommender_system.utils import batch_dict_to_device, save_model
+from retail_recommender_system.utils import batch_dict_to_device
 
 logger = init_logger(__name__)
 
@@ -40,16 +38,20 @@ class MFTrainer(BaseTrainer):
             self.dataset.data["relations"], torch.ones(len(self.dataset.data["relations"])).numpy(), test_size=self.train_config.valid_size
         )
 
-        train_dataset = MFDataset(X_train, n_items=self.dataset.n_items, neg_sampl=self.train_config.neg_sampl)
-        val_dataset = MFDataset(X_valid, n_items=self.dataset.n_items, neg_sampl=self.train_config.neg_sampl)
-        eval_dataset = MFEvalDataset(val_dataset.users_set(), val_dataset.items_set(), user_batch_size=1024)
+        train_dataset = MFDataset(
+            relations=X_train, users=self.dataset.data["users"], items=self.dataset.data["items"], neg_sampl=self.train_config.neg_sampl
+        )
+        val_dataset = MFDataset(
+            relations=X_valid, users=self.dataset.data["users"], items=self.dataset.data["items"], neg_sampl=self.train_config.neg_sampl
+        )
+        eval_dataset = MFEvalDataset(base_dataset=val_dataset, user_batch_size=1024)
 
         return {"train": train_dataset, "val": val_dataset, "eval": eval_dataset}
 
     def _init_loaders(self) -> dict[str, DataLoader]:
         train_loader = DataLoader(self.datasets["train"], batch_size=self.train_config.batch_size, shuffle=True, collate_fn=collate_fn)
         val_loader = DataLoader(self.datasets["val"], batch_size=self.train_config.batch_size, shuffle=False, collate_fn=collate_fn)
-        eval_loader = DataLoader(self.datasets["eval"], batch_size=1, collate_fn=eval_collate_fn, shuffle=False)
+        eval_loader = DataLoader(self.datasets["eval"], batch_size=1, collate_fn=collate_fn, shuffle=False)
 
         return {"train": train_loader, "val": val_loader, "eval": eval_loader}
 
@@ -61,7 +63,7 @@ class MFTrainer(BaseTrainer):
     def evaluate(self, K: list[int]) -> dict[str, Any]:
         users_set = self.loaders["eval"].dataset.users_set
         items_set = self.loaders["eval"].dataset.items_set
-        ground_truth = self.loaders["val"].dataset.ground_truth()
+        ground_truth = self.loaders["eval"].dataset.ground_truth
         n_users = self.dataset.n_users
         n_items = self.dataset.n_items
 
@@ -69,6 +71,7 @@ class MFTrainer(BaseTrainer):
             partial(self.recommend_udf, model=self.model, n_items=len(items_set)),
             self.loaders["eval"],
             max(K),
+            device=self.device,
             past_interactions=None,
         )
 
@@ -79,15 +82,17 @@ class MFTrainer(BaseTrainer):
 
             metrics["precision"][k] = precision.item()
             metrics["recall"][k] = recall.item()
+
+            print(f"Precision@{k}: {precision.item()} | Recall@{k}: {recall.item()}")
         return metrics
 
-    def train(self, device: torch.device, print_every: None | int = None) -> tuple[float, float]:
+    def train(self, print_every: None | int = None) -> tuple[float, float]:
         self.model.train()
         train_loss = 0.0
         preds, ground_truths = [], []
 
         for batch_idx, batch in enumerate(self.loaders["train"]):
-            data = batch_dict_to_device(batch, device)
+            data = batch_dict_to_device(batch, self.device)
 
             self.optimizer.zero_grad()
             output = self.model(data)
@@ -116,14 +121,14 @@ class MFTrainer(BaseTrainer):
 
         return train_loss, train_roc_auc
 
-    def test(self, device: torch.device, print_every: None | int = None) -> tuple[float, float]:
+    def test(self, print_every: None | int = None) -> tuple[float, float]:
         self.model.eval()
         test_loss = 0.0
         preds, ground_truths = [], []
 
         with torch.no_grad():
             for batch_idx, batch in enumerate(self.loaders["val"]):
-                data = batch_dict_to_device(batch, device)
+                data = batch_dict_to_device(batch, self.device)
 
                 output = self.model(data)
                 loss = self.criterion(output, data["target"])
@@ -145,13 +150,12 @@ class MFTrainer(BaseTrainer):
         return test_loss, test_roc_auc
 
     def fit(self) -> History:
-        device = torch.device("cpu")
-        logger.info("Training model %s on device %s", self.model.__class__.__name__, device)
+        logger.info("Training model %s on device %s", self.model.__class__.__name__, self.device)
         history = History()
 
         for epoch in tqdm(range(1, self.train_config.epochs + 1)):
-            train_loss, train_roc_auc = self.train(device=device, print_every=100)
-            test_loss, test_roc_auc = self.test(device=device, print_every=1)
+            train_loss, train_roc_auc = self.train(print_every=100)
+            test_loss, test_roc_auc = self.test(print_every=1)
             eval_metrics = self.evaluate(K=[5, 10, 12])
 
             history.log_loss(train_loss, test_loss)

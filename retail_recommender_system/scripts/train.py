@@ -1,17 +1,11 @@
 import argparse
 import json
-from typing import Any, TypedDict
+from typing import Any
 
-import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader
 
 from retail_recommender_system.data.loader import DataConfig, load_dataset
 from retail_recommender_system.logging import init_logger
-from retail_recommender_system.models.mf import MF, MFDataset, MFEvalDataset, collate_fn, eval_collate_fn
 from retail_recommender_system.trainer.loader import ModelConfig, TrainConfig, load_trainer
 from retail_recommender_system.utils import create_log_dir, save_model, set_seed
 
@@ -27,7 +21,7 @@ def main(args: argparse.Namespace):
 
     model_config = ModelConfig(**args.config["model"])
     train_config = TrainConfig(**args.config["train"])
-    trainer = load_trainer(model_config, train_config, dataset)
+    trainer = load_trainer(model_config, train_config, dataset, device)
     history = trainer.fit()
 
     log_dir = create_log_dir(trainer.model)

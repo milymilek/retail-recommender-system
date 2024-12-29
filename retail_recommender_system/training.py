@@ -35,7 +35,8 @@ class History:
             json.dump(self.__dict__, f)
 
     def plot(self, path: Path) -> None:
-        fig, ax = plt.subplots(3, 1, figsize=(10, 10))
+        nrows = 2 + len(self.eval_metrics)
+        fig, ax = plt.subplots(nrows, 1, figsize=(5 * nrows, 10))
 
         ax[0].plot(self.train_loss, label="train loss")
         ax[0].plot(self.val_loss, label="val loss")
@@ -49,11 +50,12 @@ class History:
         ax[1].set_ylabel("Value")
         ax[1].legend()
 
-        for metric in self.eval_metrics:
+        for i, metric in enumerate(self.eval_metrics):
+            i += 2
             for k in self.eval_metrics[metric]:
-                ax[2].plot(self.eval_metrics[metric][k], label=f"{metric}@{k}")
-        ax[2].set_xlabel("Epoch")
-        ax[2].set_ylabel("Value")
-        ax[2].legend()
+                ax[i].plot(self.eval_metrics[metric][k], label=f"{metric}@{k}")
+            ax[i].set_xlabel("Epoch")
+            ax[i].set_ylabel("Value")
+            ax[i].legend()
 
         plt.savefig(path / "history_plot.png")
