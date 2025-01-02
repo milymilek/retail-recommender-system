@@ -17,7 +17,6 @@ class FeedForward(nn.Module):
 
             if dropout is not None:
                 layers.append(nn.Dropout(p=dropout))
-        layers.append(nn.Linear(sizes[-1], 1))
 
         self._layers = nn.Sequential(*layers)
 

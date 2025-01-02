@@ -6,8 +6,12 @@ from typing import TYPE_CHECKING, Any
 from retail_recommender_system.logging import init_logger
 from retail_recommender_system.models.deepfm import DeepFM
 from retail_recommender_system.models.mf import MF
+from retail_recommender_system.models.mfconv import MFConv
+from retail_recommender_system.models.ncf import NCF
 from retail_recommender_system.trainer.deepfm import DeepFMTrainer
 from retail_recommender_system.trainer.mf import MFTrainer
+from retail_recommender_system.trainer.mfconv import MFConvTrainer
+from retail_recommender_system.trainer.ncf import NCFTrainer
 
 if TYPE_CHECKING:
     import torch
@@ -20,7 +24,9 @@ logger = init_logger(__name__)
 
 class ModelEnum(str, Enum):
     MF = MF
+    MFConv = MFConv
     DeepFM = DeepFM
+    NCF = NCF
 
 
 @dataclass
@@ -48,5 +54,5 @@ def load_trainer(model_config: ModelConfig, train_config: TrainConfig, dataset: 
     logger.info("Model configuration:\n%s", json.dumps(asdict(model_config), indent=2))
     logger.info("Train configuration:\n%s", json.dumps(asdict(train_config), indent=2))
 
-    trainer_map = {ModelEnum.MF: MFTrainer, ModelEnum.DeepFM: DeepFMTrainer}
+    trainer_map = {ModelEnum.MF: MFTrainer, ModelEnum.DeepFM: DeepFMTrainer, ModelEnum.NCF: NCFTrainer, ModelEnum.MFConv: MFConvTrainer}
     return trainer_map[model_config.model_type](model_config, train_config, dataset, device)

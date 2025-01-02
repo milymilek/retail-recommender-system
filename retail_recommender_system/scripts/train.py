@@ -18,6 +18,7 @@ def main(args: argparse.Namespace):
 
     data_config = DataConfig(**args.config["data"])
     dataset = load_dataset(data_config)
+    dataset.load()
 
     model_config = ModelConfig(**args.config["model"])
     train_config = TrainConfig(**args.config["train"])

@@ -36,7 +36,7 @@ class History:
 
     def plot(self, path: Path) -> None:
         nrows = 2 + len(self.eval_metrics)
-        fig, ax = plt.subplots(nrows, 1, figsize=(5 * nrows, 10))
+        fig, ax = plt.subplots(nrows, 1, figsize=(10, 5 * nrows))
 
         ax[0].plot(self.train_loss, label="train loss")
         ax[0].plot(self.val_loss, label="val loss")

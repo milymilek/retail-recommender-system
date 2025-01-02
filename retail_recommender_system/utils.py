@@ -1,9 +1,11 @@
 import random
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import polars as pl
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
@@ -60,3 +62,13 @@ def create_log_dir(model: nn.Module, base: str = ".runs") -> Path:
     path = Path(f"{base}/{model.__class__.__name__}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def parse_enum(x: str, cls: type[Enum]):
+    return cls[x].value
+
+
+def split_by_time(df: pl.DataFrame, date_col: str, validation_ratio: float = 0.2) -> tuple[pl.DataFrame, pl.DataFrame]:
+    df = df.sort(date_col)
+    split_idx = int(len(df) * (1 - validation_ratio))
+    return df[:split_idx], df[split_idx:]

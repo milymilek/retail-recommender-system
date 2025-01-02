@@ -8,7 +8,7 @@ class BaseDataset(ABC):
     def __init__(self, base: str, prefix: str):
         self._base = Path(base)
         self._prefix = Path(prefix)
-        self.data = self.load()
+        # self.data = self.load()
 
     @property
     @abstractmethod
@@ -27,7 +27,7 @@ class BaseDataset(ABC):
         return self._root / "intermediate" / self._prefix
 
     @abstractmethod
-    def load(self) -> dict[str, pl.DataFrame]: ...
+    def load(self): ...
 
     @property
     @abstractmethod

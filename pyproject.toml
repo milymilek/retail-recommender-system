@@ -11,9 +11,13 @@ dependencies = [
     "seaborn>=0.13.2",
     "torch-geometric>=2.6.1",
     "torch>=2.5.1",
+    "torchvision>=0.20.1",
 ]
 
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5",
+]
+test = [
+    "pytest>=8.3.4",
 ]
