@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 class Sparsifier:
     def __init__(self, relations: pl.DataFrame, users: pl.DataFrame, items: pl.DataFrame, namings: dict):
-        self.relations = relations
+        self.train_relations, self.valid_relations = relations
         self.users = users
         self.items = items
 
@@ -17,11 +17,12 @@ class Sparsifier:
     def sparsify(self, frac: float):
         n_users = self.users.get_column(self.user_id_col).n_unique()
         n_items = self.items.get_column(self.item_id_col).n_unique()
-        relations_n_users = self.relations.get_column(self.user_id_col).n_unique()
-        relations_n_items = self.relations.get_column(self.item_id_col).n_unique()
+        relations_n_users = self.train_relations.get_column(self.user_id_col).n_unique()
+        relations_n_items = self.train_relations.get_column(self.item_id_col).n_unique()
 
-        users_filtered = self.relations.select(self.user_id_map_col).unique().sample(fraction=frac)
-        relations_filtered = self.relations.join(users_filtered, on=self.user_id_map_col, how="right")
+        users_filtered = self.train_relations.select(self.user_id_map_col).unique().sample(fraction=frac)
+        relations_filtered = self.train_relations.join(users_filtered, on=self.user_id_map_col, how="right")
+        valid_relations_filtered = self.valid_relations.join(users_filtered, on=self.user_id_map_col, how="right")
         relations_filtered_n_users = relations_filtered.get_column(self.user_id_col).n_unique()
         relations_filtered_n_items = relations_filtered.get_column(self.item_id_col).n_unique()
 
@@ -35,7 +36,7 @@ class Sparsifier:
         relations_filtered.shape
         _, ax = plt.subplots(1, 2, figsize=(10, 5))
 
-        relations_cnt = self.relations.group_by(self.user_id_map_col).agg(pl.len()).sort("len", descending=True)
+        relations_cnt = self.train_relations.group_by(self.user_id_map_col).agg(pl.len()).sort("len", descending=True)
         relations_filtered_cnt = relations_filtered.group_by(self.user_id_map_col).agg(pl.len()).sort("len", descending=True)
         ax[0].hist(relations_cnt.select("len"), bins=500)
         ax[1].hist(relations_filtered_cnt.select("len"), bins=500)
@@ -51,11 +52,17 @@ class Sparsifier:
         # for c, id_map in zip([self.user_id_col, "article_id"], [users_id_map, articles_id_map]):
         #     id_map.write_parquet(f".data/hm/intermediate/frac_{str(args.frac).replace('.', '_')}/{c}_map.parquet")
 
-        relations_filtered = (
+        train_relations_filtered = (
             relations_filtered.drop(self.user_id_map_col, self.item_id_map_col)
             .sort(self.date_col)
             .join(users_id_map, on=self.user_id_col, how="left")
             .join(articles_id_map, on=self.item_id_col, how="left")
         )
+        valid_relations_filtered = (
+            valid_relations_filtered.drop(self.user_id_map_col, self.item_id_map_col)
+            .sort(self.date_col)
+            .join(users_id_map, on=self.user_id_col, how="left")
+            .join(articles_id_map, on=self.item_id_col, how="left")
+        )
 
-        return {"relations": relations_filtered, "users": users_filtered, "items": items_filtered}
+        return {"relations": (train_relations_filtered, valid_relations_filtered), "users": users_filtered, "items": items_filtered}

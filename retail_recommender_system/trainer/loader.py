@@ -43,8 +43,10 @@ class ModelConfig:
 class TrainConfig:
     valid_size: float
     batch_size: int
+    train_print_every: int
     eval_batch_size: int
     eval_user_batch_size: int
+    eval_print_every: int
     neg_sampl: int
     lr: float
     epochs: int

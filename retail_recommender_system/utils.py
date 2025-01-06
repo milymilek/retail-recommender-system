@@ -1,4 +1,5 @@
 import random
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -9,6 +10,8 @@ import polars as pl
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
+from torchvision.io import read_image
+from tqdm import tqdm
 
 from retail_recommender_system.logging import init_logger
 
@@ -72,3 +75,30 @@ def split_by_time(df: pl.DataFrame, date_col: str, validation_ratio: float = 0.2
     df = df.sort(date_col)
     split_idx = int(len(df) * (1 - validation_ratio))
     return df[:split_idx], df[split_idx:]
+
+
+def filter_set(df: pl.DataFrame, reference_df: pl.DataFrame, user_col: str, item_col: str) -> pl.DataFrame:
+    users = reference_df[user_col].unique().to_numpy().ravel()
+    items = reference_df[item_col].unique().to_numpy().ravel()
+
+    return df.filter(pl.col(user_col).is_in(users), pl.col(item_col).is_in(items))
+
+
+def read_imgs(paths: list[str], transform: Callable, default_size: tuple[int, int, int], tqdm_: bool = False) -> torch.Tensor:
+    _imgs = []
+
+    iterator = paths
+    if tqdm_:
+        iterator = tqdm(iterator)
+
+    for path in iterator:
+        if path is None:
+            img = torch.zeros(default_size, dtype=torch.float)
+        else:
+            img = transform(read_image(path))
+        _imgs.append(img)
+    return torch.stack(_imgs, dim=0)
+
+
+def approx_neg_sampl(n_items: int, neg_sampl: int) -> torch.Tensor:
+    return torch.randint(low=0, high=n_items, size=(neg_sampl,), dtype=torch.int32)

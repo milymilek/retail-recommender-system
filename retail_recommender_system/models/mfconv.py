@@ -1,18 +1,17 @@
 from dataclasses import dataclass
 from functools import cached_property
+from pathlib import Path
 from typing import Any
 
 import polars as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.transforms as transforms
-from PIL import Image
 from torch.utils.data import Dataset, IterableDataset
-from torchvision.io import read_image
 
 from retail_recommender_system.layers.dotprod import DotProd
 from retail_recommender_system.logging import init_logger
+from retail_recommender_system.utils import approx_neg_sampl
 
 logger = init_logger(__name__)
 
@@ -25,63 +24,26 @@ def collate_fn(batch):
     return {"u_id": u_id, "i_id": i_id, "i_img": imgs, "target": target}
 
 
-def _to_float(x):
-    return x.to(torch.float32)
-
-
-def _normalize(x):
-    return x / 255.0
-
-
-def _to_rgb(x):
-    return x.expand(3, -1, -1)
-
-
-from collections import OrderedDict
-
-
-class CacheDict(OrderedDict):
-    """Dict with a limited length, ejecting LRUs as needed."""
-
-    def __init__(self, *args, cache_len: int = 10, **kwargs):
-        assert cache_len > 0
-        self.cache_len = cache_len
-
-        super().__init__(*args, **kwargs)
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        super().move_to_end(key)
-
-        while len(self) > self.cache_len:
-            oldkey = next(iter(self))
-            super().__delitem__(oldkey)
-
-    def __getitem__(self, key):
-        val = super().__getitem__(key)
-        super().move_to_end(key)
-
-        return val
+def eval_collate_fn(batch):
+    u_id = torch.cat([x["u_id"] for x in batch])
+    return {"u_id": u_id}
 
 
 class MFConvDataset(Dataset):
-    def __init__(self, relations: pl.DataFrame, users: pl.DataFrame, items: pl.DataFrame, namings, neg_sampl: int = 5):
+    def __init__(
+        self,
+        relations: pl.DataFrame,
+        users: pl.DataFrame,
+        items: pl.DataFrame,
+        images_path: Path,
+        namings: dict[str, str],
+        neg_sampl: int = 5,
+    ):
         self._df = torch.from_numpy(relations.select(namings["user_id_map"], namings["item_id_map"]).to_numpy()).to(torch.int32)
         self._users = torch.from_numpy(users.get_column(namings["user_id_map"]).to_numpy()).to(torch.float32)
         self._items = items.get_column("path")
         self._neg_sampl = neg_sampl
-
-        self.img_size = 28
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((self.img_size, self.img_size)),
-                _to_rgb,
-                _to_float,
-                _normalize,
-                # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-        self.img_cache = CacheDict(cache_len=20000)
+        self._images = torch.load(images_path, weights_only=True)
 
     @property
     def _n_users(self) -> int:
@@ -90,6 +52,22 @@ class MFConvDataset(Dataset):
     @property
     def _n_items(self) -> int:
         return len(self._items)
+
+    @property
+    def images(self) -> torch.Tensor:
+        return self._images
+
+    @cached_property
+    def users_set(self) -> torch.Tensor:
+        return torch.arange(self._n_users, dtype=torch.int32)
+
+    @cached_property
+    def items_set(self) -> torch.Tensor:
+        return torch.arange(self._n_items, dtype=torch.int32)
+
+    @cached_property
+    def ground_truth(self) -> torch.Tensor:
+        return self._df.T
 
     def __len__(self):
         return len(self._df)
@@ -100,42 +78,13 @@ class MFConvDataset(Dataset):
         items = row[1].unsqueeze(0)
 
         u_id = user.repeat(self._neg_sampl + 1)
-        i_id = torch.cat([items, self._approx_neg_sampl()])
+        i_id = torch.cat([items, approx_neg_sampl(self._n_items, self._neg_sampl)])
 
-        imgs = self.read_imgs(i_id)
+        imgs = self._images[i_id]
 
         target = torch.tensor([1.0] + [0.0] * self._neg_sampl, dtype=torch.float)
 
         return {"u_id": u_id, "i_id": i_id, "i_img": imgs, "target": target}
-
-    def _approx_neg_sampl(self):
-        neg_i_id = torch.randint(low=0, high=self._n_items, size=(self._neg_sampl,), dtype=torch.int32)
-        return neg_i_id
-
-    def read_imgs(self, i_id: torch.Tensor):
-        _imgs = []
-
-        for i in i_id.tolist():
-            img = self.img_cache.get(i)
-            if img is None:
-                path = self._items[int(i)]
-                if path is None:
-                    img = torch.zeros((3, self.img_size, self.img_size), dtype=torch.float)
-                else:
-                    img = self.transform(read_image(path))
-
-                self.img_cache[i] = img
-            _imgs.append(img)
-        return torch.stack(_imgs, dim=0)
-
-    def users_set(self) -> torch.Tensor:
-        return torch.arange(self._n_users, dtype=torch.int32)
-
-    def items_set(self) -> torch.Tensor:
-        return torch.arange(self._n_items, dtype=torch.int32)
-
-    def ground_truth(self) -> torch.Tensor:
-        return self._df.T
 
 
 class MFConvEvalDataset(IterableDataset):
@@ -144,40 +93,28 @@ class MFConvEvalDataset(IterableDataset):
         self._base_dataset = base_dataset
         self._user_batch_size = user_batch_size
 
-        # self._imgs = self._base_dataset.read_imgs(self.items_set)
-
-    @cached_property
+    @property
     def users_set(self) -> torch.Tensor:
-        return self._base_dataset.users_set()
+        return self._base_dataset.users_set
 
-    @cached_property
+    @property
     def items_set(self) -> torch.Tensor:
-        return self._base_dataset.items_set()
+        return self._base_dataset.items_set
 
-    @cached_property
+    @property
     def ground_truth(self) -> torch.Tensor:
-        return self._base_dataset.ground_truth()
+        return self._base_dataset.ground_truth
 
-    def get_batch_data(self, batch):
-        u_id = torch.repeat_interleave(batch, self._base_dataset._n_items)
-        i_id = self.items_set.repeat(len(batch))
-
-        print(self._imgs.shape)
-        raise
-
-        return {
-            "u_id": u_id,
-            "i_id": i_id,
-            "i_img": self._imgs,
-            "target": torch.zeros(len(u_id), dtype=torch.float),
-        }
+    @property
+    def images(self) -> torch.Tensor:
+        return self._base_dataset.images
 
     def __len__(self):
         return len(self.users_set) // self._user_batch_size + 1
 
     def __iter__(self):
         for batch in self.users_set.split(self._user_batch_size):
-            yield self.get_batch_data(batch)
+            yield {"u_id": batch}
 
 
 @dataclass
@@ -195,13 +132,16 @@ class _ImgConv(nn.Module):
         self.conv2 = nn.Conv2d(6, 12, kernel_size=(3, 3), stride=1)
         self.maxpool = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
         self.ff_e = nn.Linear(300, config.emb_size)
+        self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = self.maxpool(x)
         x = F.relu(self.conv2(x))
+        x = self.dropout(x)
         x = self.maxpool(x)
         x = torch.flatten(x, 1)
+        x = self.dropout(x)
         return self.ff_e(x)
 
 
@@ -217,7 +157,17 @@ class MFConv(nn.Module):
 
         self.dot = DotProd()
 
-    def forward(self, x):
+    def forward(self, x: dict[str, torch.Tensor]):
         user_factors = self.dropout(self.user_factors(x["u_id"]))
-        item_factors = self.dropout(self.item_factors(x["i_id"])) * self.conv(x["i_img"])
+        item_factors = self.dropout(self.item_factors(x["i_id"])) + self.conv(x["i_img"])
         return self.dot(user_factors, item_factors)
+
+    @torch.no_grad()
+    def precompute_img_embeddings(self, x):
+        self._precomputed_img_emb = self.conv(x)
+
+    @torch.no_grad()
+    def recommend(self, x: dict[str, torch.Tensor]):
+        user_emb = self.user_factors.weight[x["u_id"]]
+        item_emb = self.item_factors.weight * self._precomputed_img_emb
+        return torch.sigmoid(user_emb @ item_emb.T)

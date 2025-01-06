@@ -23,6 +23,7 @@ class BaseTrainer(ABC):
         self.model = self._init_model()
         self.optimizer = self._init_optimizer()
         self.criterion = self._init_criterion()
+        self.scheduler = self._init_scheduler()
 
     @property
     @abstractmethod
@@ -44,6 +45,9 @@ class BaseTrainer(ABC):
 
     @abstractmethod
     def _init_loaders(self) -> dict[str, "DataLoader"]: ...
+
+    @abstractmethod
+    def _init_scheduler(self) -> Any: ...
 
     @abstractmethod
     def fit(self) -> "History": ...
