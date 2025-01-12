@@ -5,7 +5,6 @@ from pathlib import Path
 from google.colab import auth
 from oauth2client.client import GoogleCredentials
 from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
 from pydrive2.fs import GDriveFileSystem
 from tqdm import tqdm
 
@@ -30,7 +29,6 @@ def download_directory(fs, remote_prefix, local_prefix):
 auth.authenticate_user()
 gauth = GoogleAuth()
 gauth.credentials = GoogleCredentials.get_application_default()
-drive = GoogleDrive(gauth)
 fs = GDriveFileSystem("root", google_auth=gauth)
 
 remote_prefix = "root/Projects"

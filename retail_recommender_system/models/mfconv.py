@@ -11,7 +11,7 @@ from torch.utils.data import Dataset, IterableDataset
 
 from retail_recommender_system.layers.dotprod import DotProd
 from retail_recommender_system.logging import init_logger
-from retail_recommender_system.utils import approx_neg_sampl
+from retail_recommender_system.utils import approx_neg_sampl, count_model_parameters
 
 logger = init_logger(__name__)
 
@@ -122,24 +122,25 @@ class MFConvModelConfig:
     n_users: int
     n_items: int
     emb_size: int
+    image_size: tuple[int, int, int]
     dropout: float = 0.0
+    pretrained_conv: str | None = None
 
 
-class _ImgConv(nn.Module):
+class ImgConv(nn.Module):
     def __init__(self, config: MFConvModelConfig):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, 6, kernel_size=(3, 3), stride=1)
-        self.conv2 = nn.Conv2d(6, 12, kernel_size=(3, 3), stride=1)
-        self.maxpool = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.ff_e = nn.Linear(300, config.emb_size)
+        self.conv1 = nn.Conv2d(3, 12, kernel_size=(4, 4), stride=3)
+        self.conv2 = nn.Conv2d(12, 24, kernel_size=(3, 3), stride=3)
+        self.conv3 = nn.Conv2d(24, 36, kernel_size=(3, 3), stride=2)
+        self.maxpool = nn.MaxPool2d(kernel_size=(2, 2), stride=1)
+        self.ff_e = nn.Linear(576, config.emb_size)
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = self.maxpool(x)
-        x = F.relu(self.conv2(x))
-        x = self.dropout(x)
-        x = self.maxpool(x)
+        x = self.dropout(self.maxpool(F.relu(self.conv1(x))))
+        x = self.maxpool(F.relu(self.conv2(x)))
+        x = self.maxpool(F.relu(self.conv3(x)))
         x = torch.flatten(x, 1)
         x = self.dropout(x)
         return self.ff_e(x)
@@ -153,9 +154,22 @@ class MFConv(nn.Module):
 
         self.dropout = nn.Dropout(config.dropout)
 
-        self.conv = _ImgConv(config)
+        self.conv = ImgConv(config)
+        if config.pretrained_conv is not None:
+            self._load_conv_weights(config.pretrained_conv)
 
         self.dot = DotProd()
+
+    def _load_conv_weights(self, path: str):
+        self.conv.load_state_dict(torch.load(path, weights_only=True))
+
+        for name, param in self.conv.named_parameters():
+            if name.startswith("ff_e"):
+                param.requires_grad = True  # Keep ff_e trainable
+            else:
+                param.requires_grad = False  # Freeze all other layers
+
+        print("Pretrained weights loaded. Layer `conv`'s Parameters: \n", count_model_parameters(self.conv))
 
     def forward(self, x: dict[str, torch.Tensor]):
         user_factors = self.dropout(self.user_factors(x["u_id"]))
@@ -169,5 +183,36 @@ class MFConv(nn.Module):
     @torch.no_grad()
     def recommend(self, x: dict[str, torch.Tensor]):
         user_emb = self.user_factors.weight[x["u_id"]]
-        item_emb = self.item_factors.weight * self._precomputed_img_emb
+        item_emb = self.item_factors.weight + self._precomputed_img_emb
+        return torch.sigmoid(user_emb @ item_emb.T)
+
+
+class MFConv2(nn.Module):
+    def __init__(self, config: MFConvModelConfig):
+        super().__init__()
+        self.user_factors = nn.Embedding(config.n_users, config.emb_size)
+        self.item_factors = nn.Embedding(config.n_items, config.emb_size)
+        self._load_pretrained_item_factors()
+
+        self.dropout = nn.Dropout(config.dropout)
+
+        self.dot = DotProd()
+
+    def _load_pretrained_item_factors(self):
+        pretrained_weights = torch.load(".models/conv.pth")
+        self.item_factors.weight = nn.Parameter(pretrained_weights)
+
+    def forward(self, x: dict[str, torch.Tensor]):
+        user_factors = self.dropout(self.user_factors(x["u_id"]))
+        item_factors = self.dropout(self.item_factors(x["i_id"]))
+        return self.dot(user_factors, item_factors)
+
+    @torch.no_grad()
+    def precompute_img_embeddings(self, x):
+        self._precomputed_img_emb = self.conv
+
+    @torch.no_grad()
+    def recommend(self, x: dict[str, torch.Tensor]):
+        user_emb = self.user_factors.weight[x["u_id"]]
+        item_emb = self.item_factors.weight
         return torch.sigmoid(user_emb @ item_emb.T)

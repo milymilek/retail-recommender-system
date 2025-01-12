@@ -35,8 +35,8 @@ def recommend_k(
 
     recommend_batches = []
     for batch in tqdm(loader):
-        batch = batch_dict_to_device(batch, device)
-        prob = recommend_udf(batch).cpu()
+        batch_device = batch_dict_to_device(batch, device)
+        prob = recommend_udf(batch_device).cpu()
 
         if past_interactions is not None:
             _remove_past_interactions(prob, batch, past_interactions_csr)

@@ -10,7 +10,15 @@ from retail_recommender_system.evaluation.metrics.precision import precision_k
 from retail_recommender_system.evaluation.metrics.recall import recall_k
 from retail_recommender_system.evaluation.prediction import recommend_k
 from retail_recommender_system.logging import init_logger
-from retail_recommender_system.models.mfconv import MFConv, MFConvDataset, MFConvEvalDataset, MFConvModelConfig, collate_fn, eval_collate_fn
+from retail_recommender_system.models.mfconv import (
+    MFConv,
+    MFConv2,
+    MFConvDataset,
+    MFConvEvalDataset,
+    MFConvModelConfig,
+    collate_fn,
+    eval_collate_fn,
+)
 from retail_recommender_system.trainer.mf import MFTrainer
 from retail_recommender_system.utils import filter_set, split_by_time
 
@@ -30,18 +38,13 @@ class MFConvTrainer(MFTrainer):
         return model
 
     def _init_datasets(self) -> dict[str, Dataset]:
-        X_train, X_valid = split_by_time(
-            self.dataset.data["relations"], date_col=self.dataset.namings["date"], validation_ratio=self.train_config.valid_size
-        )
-        X_valid = filter_set(
-            X_valid, reference_df=X_train, user_col=self.dataset.namings["user_id_map"], item_col=self.dataset.namings["item_id_map"]
-        )
+        X_train, X_valid = self.dataset.data["relations"]
 
         train_dataset = MFConvDataset(
             relations=X_train,
             users=self.dataset.data["users"],
             items=self.dataset.data["items"],
-            images_path=Path(".data/hm/intermediate/frac_0_01/images.pt"),
+            images_path=Path(".data/hm/intermediate/full/images.pth"),
             namings=self.dataset.namings,
             neg_sampl=self.train_config.neg_sampl,
         )
@@ -49,7 +52,7 @@ class MFConvTrainer(MFTrainer):
             relations=X_valid,
             users=self.dataset.data["users"],
             items=self.dataset.data["items"],
-            images_path=Path(".data/hm/intermediate/frac_0_01/images.pt"),
+            images_path=Path(".data/hm/intermediate/full/images.pth"),
             namings=self.dataset.namings,
             neg_sampl=self.train_config.neg_sampl,
         )
@@ -82,7 +85,7 @@ class MFConvTrainer(MFTrainer):
         n_users = self.dataset.n_users
         n_items = self.dataset.n_items
 
-        self.model.precompute_img_embeddings(self.loaders["eval"].dataset.images)
+        self.model.precompute_img_embeddings(self.loaders["eval"].dataset.images.cpu().to(self.device))
 
         recommendations = recommend_k(
             partial(self.recommend_udf, model=self.model, n_items=len(items_set)),
@@ -104,3 +107,16 @@ class MFConvTrainer(MFTrainer):
 
             print(f"Precision@{k}: {precision.item()} | Recall@{k}: {recall.item()}")
         return metrics
+
+
+class MFConv2Trainer(MFTrainer):
+    @property
+    def _model_config(self) -> type:
+        return MFConvModelConfig
+
+    def _init_model(self) -> nn.Module:
+        model = MFConv2(
+            self._model_config(n_users=self.dataset.n_users, n_items=self.dataset.n_items, **self.model_config.model_config)
+        ).to(self.device)
+        logger.info("Model: %s", model)
+        return model

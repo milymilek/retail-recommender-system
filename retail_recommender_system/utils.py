@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import polars as pl
+import seaborn as sns
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
@@ -39,10 +40,6 @@ def set_seed(seed: int) -> None:
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.enabled = False
-    torch.use_deterministic_algorithms(True)
 
 
 def plot_epoch_metrics(**kwargs) -> None:
@@ -102,3 +99,88 @@ def read_imgs(paths: list[str], transform: Callable, default_size: tuple[int, in
 
 def approx_neg_sampl(n_items: int, neg_sampl: int) -> torch.Tensor:
     return torch.randint(low=0, high=n_items, size=(neg_sampl,), dtype=torch.int32)
+
+
+def count_model_parameters(model):
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    non_trainable_params = total_params - trainable_params
+
+    print(f"Total parameters: {total_params}")
+    print(f"Trainable parameters: {trainable_params}")
+    print(f"Non-trainable parameters: {non_trainable_params}")
+
+    return {"total_params": total_params, "trainable_params": trainable_params, "non_trainable_params": non_trainable_params}
+
+
+def plot_accuracy_per_class(train_accuracy_per_class, valid_accuracy_per_class, weights):
+    fig, ax = plt.subplots(2, 2, figsize=(20, 4))
+
+    sns.heatmap(
+        [np.array(train_accuracy_per_class)],
+        annot=True,
+        fmt=".2f",
+        cmap="YlOrRd",
+        cbar=True,
+        cbar_kws={"label": "Accuracy"},
+        annot_kws={"rotation": 90, "va": "center"},
+        ax=ax[0, 0],
+    )
+    ax[0, 0].set_xlabel("Class Index")
+    ax[0, 0].set_title("Train Accuracy per Class (Heatmap)")
+    ax[0, 0].set_yticks([])
+    ax[0, 0].set_xticks(np.arange(len(train_accuracy_per_class)) + 0.5)
+    ax[0, 0].set_xticklabels(np.arange(len(train_accuracy_per_class)), rotation=90)
+
+    sns.heatmap(
+        [np.array(valid_accuracy_per_class)],
+        annot=True,
+        fmt=".2f",
+        cmap="YlOrRd",
+        cbar=True,
+        cbar_kws={"label": "Accuracy"},
+        annot_kws={"rotation": 90, "va": "center"},
+        ax=ax[1, 0],
+    )
+    ax[1, 0].set_xlabel("Class Index")
+    ax[1, 0].set_title("Valid Accuracy per Class (Heatmap)")
+    ax[1, 0].set_yticks([])
+    ax[1, 0].set_xticks(np.arange(len(valid_accuracy_per_class)) + 0.5)
+    ax[1, 0].set_xticklabels(np.arange(len(valid_accuracy_per_class)), rotation=90)
+
+    adjusted_train_accuracy = (train_accuracy_per_class * weights) / (train_accuracy_per_class * weights).sum()
+    sns.heatmap(
+        [adjusted_train_accuracy],
+        annot=True,
+        fmt=".2f",
+        cmap="YlOrRd",
+        cbar=True,
+        cbar_kws={"label": "Adjusted Accuracy"},
+        annot_kws={"rotation": 90, "va": "center"},
+        ax=ax[0, 1],
+    )
+    ax[0, 1].set_xlabel("Class Index")
+    ax[0, 1].set_title("Adjusted Train Accuracy per Class (Heatmap)")
+    ax[0, 1].set_yticks([])
+    ax[0, 1].set_xticks(np.arange(len(adjusted_train_accuracy)) + 0.5)
+    ax[0, 1].set_xticklabels(np.arange(len(adjusted_train_accuracy)), rotation=90)
+
+    adjusted_valid_accuracy = (valid_accuracy_per_class * weights) / (valid_accuracy_per_class * weights).sum()
+    sns.heatmap(
+        [adjusted_valid_accuracy],
+        annot=True,
+        fmt=".2f",
+        cmap="YlOrRd",
+        cbar=True,
+        cbar_kws={"label": "Adjusted Accuracy"},
+        annot_kws={"rotation": 90, "va": "center"},
+        ax=ax[1, 1],
+    )
+    ax[1, 1].set_xlabel("Class Index")
+    ax[1, 1].set_title("Adjusted Valid Accuracy per Class (Heatmap)")
+    ax[1, 1].set_yticks([])
+    ax[1, 1].set_xticks(np.arange(len(adjusted_valid_accuracy)) + 0.5)
+    ax[1, 1].set_xticklabels(np.arange(len(adjusted_valid_accuracy)), rotation=90)
+
+    plt.tight_layout()
+    plt.show()

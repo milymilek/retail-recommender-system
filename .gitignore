@@ -16,3 +16,7 @@ wheels/
 .data
 .runs
 .config
+.models
+
+# GCP
+client_secrets.json

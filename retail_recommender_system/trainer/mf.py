@@ -24,7 +24,9 @@ class MFTrainer(BaseTrainer):
         return MFModelConfig
 
     def _init_model(self) -> nn.Module:
-        model = MF(self._model_config(n_users=self.dataset.n_users, n_items=self.dataset.n_items, **self.model_config.model_config))
+        model = MF(self._model_config(n_users=self.dataset.n_users, n_items=self.dataset.n_items, **self.model_config.model_config)).to(
+            self.device
+        )
         logger.info("Model: %s", model)
         return model
 
