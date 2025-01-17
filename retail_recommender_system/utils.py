@@ -125,6 +125,8 @@ def plot_accuracy_per_class(train_accuracy_per_class, valid_accuracy_per_class, 
         cbar_kws={"label": "Accuracy"},
         annot_kws={"rotation": 90, "va": "center"},
         ax=ax[0, 0],
+        vmin=0,
+        vmax=1,
     )
     ax[0, 0].set_xlabel("Class Index")
     ax[0, 0].set_title("Train Accuracy per Class (Heatmap)")
@@ -141,6 +143,8 @@ def plot_accuracy_per_class(train_accuracy_per_class, valid_accuracy_per_class, 
         cbar_kws={"label": "Accuracy"},
         annot_kws={"rotation": 90, "va": "center"},
         ax=ax[1, 0],
+        vmin=0,
+        vmax=1,
     )
     ax[1, 0].set_xlabel("Class Index")
     ax[1, 0].set_title("Valid Accuracy per Class (Heatmap)")
@@ -148,39 +152,44 @@ def plot_accuracy_per_class(train_accuracy_per_class, valid_accuracy_per_class, 
     ax[1, 0].set_xticks(np.arange(len(valid_accuracy_per_class)) + 0.5)
     ax[1, 0].set_xticklabels(np.arange(len(valid_accuracy_per_class)), rotation=90)
 
-    adjusted_train_accuracy = (train_accuracy_per_class * weights) / (train_accuracy_per_class * weights).sum()
+    assert np.isclose(np.sum(weights), 1), f"Weights must sum to 1, got {np.sum(weights)}"
+    weighted_train_accuracy = train_accuracy_per_class * weights
     sns.heatmap(
-        [adjusted_train_accuracy],
+        [weighted_train_accuracy],
         annot=True,
         fmt=".2f",
         cmap="YlOrRd",
         cbar=True,
-        cbar_kws={"label": "Adjusted Accuracy"},
+        cbar_kws={"label": "Weighted Accuracy"},
         annot_kws={"rotation": 90, "va": "center"},
         ax=ax[0, 1],
+        vmin=0,
+        vmax=1,
     )
     ax[0, 1].set_xlabel("Class Index")
-    ax[0, 1].set_title("Adjusted Train Accuracy per Class (Heatmap)")
+    ax[0, 1].set_title("Weighted Train Accuracy per Class (Heatmap)")
     ax[0, 1].set_yticks([])
-    ax[0, 1].set_xticks(np.arange(len(adjusted_train_accuracy)) + 0.5)
-    ax[0, 1].set_xticklabels(np.arange(len(adjusted_train_accuracy)), rotation=90)
+    ax[0, 1].set_xticks(np.arange(len(weighted_train_accuracy)) + 0.5)
+    ax[0, 1].set_xticklabels(np.arange(len(weighted_train_accuracy)), rotation=90)
 
-    adjusted_valid_accuracy = (valid_accuracy_per_class * weights) / (valid_accuracy_per_class * weights).sum()
+    weighted_valid_accuracy = valid_accuracy_per_class * weights
     sns.heatmap(
-        [adjusted_valid_accuracy],
+        [weighted_valid_accuracy],
         annot=True,
         fmt=".2f",
         cmap="YlOrRd",
         cbar=True,
-        cbar_kws={"label": "Adjusted Accuracy"},
+        cbar_kws={"label": "Weighted Accuracy"},
         annot_kws={"rotation": 90, "va": "center"},
         ax=ax[1, 1],
+        vmin=0,
+        vmax=1,
     )
     ax[1, 1].set_xlabel("Class Index")
-    ax[1, 1].set_title("Adjusted Valid Accuracy per Class (Heatmap)")
+    ax[1, 1].set_title("Weighted Valid Accuracy per Class (Heatmap)")
     ax[1, 1].set_yticks([])
-    ax[1, 1].set_xticks(np.arange(len(adjusted_valid_accuracy)) + 0.5)
-    ax[1, 1].set_xticklabels(np.arange(len(adjusted_valid_accuracy)), rotation=90)
+    ax[1, 1].set_xticks(np.arange(len(weighted_valid_accuracy)) + 0.5)
+    ax[1, 1].set_xticklabels(np.arange(len(weighted_valid_accuracy)), rotation=90)
 
     plt.tight_layout()
     plt.show()

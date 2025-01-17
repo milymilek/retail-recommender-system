@@ -122,12 +122,30 @@ class MFConvModelConfig:
     n_users: int
     n_items: int
     emb_size: int
-    image_size: tuple[int, int, int]
+    image_size: tuple[int, int, int] | None = None
     dropout: float = 0.0
     pretrained_conv: str | None = None
 
 
 class ImgConv(nn.Module):
+    def __init__(self, config: MFConvModelConfig):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 6, kernel_size=(3, 3), stride=2)
+        self.conv2 = nn.Conv2d(6, 10, kernel_size=(3, 3), stride=2)
+        self.maxpool = nn.MaxPool2d(kernel_size=(2, 2), stride=1)
+        self.ff_1 = nn.Linear(8410, 1024)
+        self.ff_e = nn.Linear(1024, config.emb_size)
+        self.dropout = nn.Dropout(config.dropout)
+
+    def forward(self, x):
+        x = self.dropout(self.maxpool(F.relu(self.conv1(x))))
+        x = self.maxpool(F.relu(self.conv2(x)))
+        x = torch.flatten(x, 1)
+        x = self.dropout(F.relu(self.ff_1(x)))
+        return self.ff_e(x)
+
+
+class ImgConvLarge(nn.Module):
     def __init__(self, config: MFConvModelConfig):
         super().__init__()
         self.conv1 = nn.Conv2d(3, 12, kernel_size=(4, 4), stride=3)
@@ -144,6 +162,38 @@ class ImgConv(nn.Module):
         x = torch.flatten(x, 1)
         x = self.dropout(x)
         return self.ff_e(x)
+
+
+class AlexNet(nn.Module):
+    def __init__(self, config: MFConvModelConfig):
+        super().__init__()
+
+        convs = [
+            (
+                nn.Conv2d(chs[0], chs[1], kernel_size=(k, k), stride=s),
+                nn.ReLU(),
+                nn.Dropout(config.dropout),
+                nn.MaxPool2d(kernel_size=(3, 3), stride=2),
+            )
+            for (chs, k, s) in [((3, 96), 9, 3), ((96, 256), 4, 1), ((256, 384), 3, 1), ((384, 256), 2, 1)]
+        ]
+        convs = [l for ls in convs for l in ls][:12]
+        self.convs = nn.Sequential(*convs)
+        self.mlps = nn.Sequential(
+            nn.Linear(1536, 1024),
+            nn.ReLU(),
+            nn.Dropout(config.dropout),
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Dropout(config.dropout),
+            nn.Linear(512, config.emb_size),
+            nn.Dropout(config.dropout),
+        )
+
+    def forward(self, x):
+        x = self.convs(x)
+        x = torch.flatten(x, 1)
+        return self.mlps(x)
 
 
 class MFConv(nn.Module):
@@ -190,6 +240,9 @@ class MFConv(nn.Module):
 class MFConv2(nn.Module):
     def __init__(self, config: MFConvModelConfig):
         super().__init__()
+        self.config = config
+        self.num_classes = 36
+
         self.user_factors = nn.Embedding(config.n_users, config.emb_size)
         self.item_factors = nn.Embedding(config.n_items, config.emb_size)
         self._load_pretrained_item_factors()
@@ -199,7 +252,7 @@ class MFConv2(nn.Module):
         self.dot = DotProd()
 
     def _load_pretrained_item_factors(self):
-        pretrained_weights = torch.load(".models/conv.pth")
+        pretrained_weights = torch.load(".data/hm/intermediate/sep_2020/images_embeddings.pt")
         self.item_factors.weight = nn.Parameter(pretrained_weights)
 
     def forward(self, x: dict[str, torch.Tensor]):

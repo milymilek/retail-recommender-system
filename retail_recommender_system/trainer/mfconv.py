@@ -44,7 +44,7 @@ class MFConvTrainer(MFTrainer):
             relations=X_train,
             users=self.dataset.data["users"],
             items=self.dataset.data["items"],
-            images_path=Path(".data/hm/intermediate/full/images.pth"),
+            images_path=Path(".data/hm/intermediate/sep_2020/images_tensor.pt"),
             namings=self.dataset.namings,
             neg_sampl=self.train_config.neg_sampl,
         )
@@ -52,7 +52,7 @@ class MFConvTrainer(MFTrainer):
             relations=X_valid,
             users=self.dataset.data["users"],
             items=self.dataset.data["items"],
-            images_path=Path(".data/hm/intermediate/full/images.pth"),
+            images_path=Path(".data/hm/intermediate/sep_2020/images_tensor.pt"),
             namings=self.dataset.namings,
             neg_sampl=self.train_config.neg_sampl,
         )
