@@ -1702,6 +1702,35 @@ wheels = [
 ]
 
 [[package]]
+name = "pycleora"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/28/5e/dca5d386a0fcc1a8ec6e97a98f00e9909a556cf990c6aed038f52193676e/pycleora-2.0.0.tar.gz", hash = "sha256:58dacff82e839a8e2585fad658c9a690210380fbc84c042f868a4753c1c5a379", size = 1405527 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/56/b2/faabc60e2c8783bead9a598331f803347254abb4c3b20c3b9cc638b3f194/pycleora-2.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:d79b86128c33e4d13a84f75398cde8581924980f0f9c5b7d906516d6cae4e5ac", size = 400579 },
+    { url = "https://files.pythonhosted.org/packages/8a/28/7dede2a825ced4ec5e2c37a4744dede4fb3e5b7c7c87d751be81024104b3/pycleora-2.0.0-cp310-cp310-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:8ea03a40cf2210902a05cad99daf767aa70381cee3bde87090d48c48a128db8b", size = 489263 },
+    { url = "https://files.pythonhosted.org/packages/0e/0f/4f4f50530548a8cb55f53ac55dab0382a6f90d8c67f31d505bb7a863d795/pycleora-2.0.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:607efb8f2cafd1f991cfe257cf2fa169c33d73af2ba7c0d0297c1470dbfe7290", size = 441128 },
+    { url = "https://files.pythonhosted.org/packages/88/17/9cd440ad86f848c2f10ce0391405f2cee0fe3755bd2b448a6aaaf509b20e/pycleora-2.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ba3fcd0d1b91d2e4191147f739a4fb1b5a1d0bf874a3dcac20d20655f26b6c2b", size = 452281 },
+    { url = "https://files.pythonhosted.org/packages/20/3e/cb6217fdcdfd280a26cf641927c828134c4792b07ea4ebb5c722bfd50b3b/pycleora-2.0.0-cp310-none-win32.whl", hash = "sha256:98d6decafd2014ab8ab7e38db696af81eb4f72105cf31e382459461f5dae71eb", size = 309416 },
+    { url = "https://files.pythonhosted.org/packages/dd/da/56db38a1c6304d78eb85a32e0e6969eca4bb04b207901fce6bede5c2e390/pycleora-2.0.0-cp310-none-win_amd64.whl", hash = "sha256:758d739f4ddbfa7d299f19a87590f9fae23ba71002a4e8aadf82aa9750e6a9af", size = 316581 },
+    { url = "https://files.pythonhosted.org/packages/88/bd/b95518911fb6a1e02e49943b0b54e246cb43f412464a2858d6c6718a99e6/pycleora-2.0.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:1d69338930fbb26e2a547be395220f7f4a20f474980d5bb3acbccb09016d603c", size = 400578 },
+    { url = "https://files.pythonhosted.org/packages/ce/de/a574eb5d8c4e6b8b4681953c1cdc3a11e02b19fc23de205ab07bcf745c08/pycleora-2.0.0-cp311-cp311-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:5cc541fa61c9de793c900a890d2b0b6b6a76f3bd470738c8011b8c9f04507ad4", size = 489264 },
+    { url = "https://files.pythonhosted.org/packages/81/26/48107776e3168ed3226aa7fd718b4f6a702c06218c1c7ee1e43cc3b43f40/pycleora-2.0.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ca8d1d33919c31a8ad41d1b96ea49bd644e6cf43f2830b498c32059ecd723648", size = 441128 },
+    { url = "https://files.pythonhosted.org/packages/24/b9/64e94a55f5d289f789b5ce741b0682964fa9142613ab035f9abf83c2341f/pycleora-2.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1aae30ec15781c148b7830a9cb85943e769dd499eec5bafc53679be5f029b9f2", size = 452281 },
+    { url = "https://files.pythonhosted.org/packages/ce/19/58edb3f3c0a1f279f44dd46affadd9fbadc9bcae7c7c8cf2db47278a96a3/pycleora-2.0.0-cp311-none-win32.whl", hash = "sha256:1a5803ace45127642634ebc8fa36c71b93894db294f69512310f699d57cfcd3d", size = 309424 },
+    { url = "https://files.pythonhosted.org/packages/5f/19/70fa1799e65480c796191db42de8c767f89f26a5d63155dbe47ff8745988/pycleora-2.0.0-cp311-none-win_amd64.whl", hash = "sha256:b81044b1fcaea6a0a7f91497e226b8a1e0e70ad1d7c303955ea954c7a0c40169", size = 316588 },
+    { url = "https://files.pythonhosted.org/packages/80/db/76b3af19a7efa50adf67c672ac477c61de43aad5ca352e9a70807aa9d1ab/pycleora-2.0.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:2b44f82646fb68b2d2b9433ef2f012a6b8629e4fe20186fa450b8d25530076c6", size = 400575 },
+    { url = "https://files.pythonhosted.org/packages/e0/a9/f9c30a3a8d6512eabe1e805e8f0ea83997c62abc8606487c5115b885dc7a/pycleora-2.0.0-cp312-cp312-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:50af1712e8ec6abeae3341f7bec8837fd0a4f3632ff5c5de1c4a96de762c13ac", size = 489262 },
+    { url = "https://files.pythonhosted.org/packages/a2/ab/924792fc8568fe330e020652d45c3fe2dfd203b246a5e8b8fc7bcb540a6d/pycleora-2.0.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f9ba29aead9a3cf3e50e840d85882b374166e1724a2ffe7c1bbb86ac14a86baf", size = 441129 },
+    { url = "https://files.pythonhosted.org/packages/a4/d4/41287c4dd69b8d2e0f1f3efb09d58118cd331e52d7b665aeef282e356b16/pycleora-2.0.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3421b9ef8876ee1d6e48242c080c2053cf3458879da780c5c4def6809e98b707", size = 452280 },
+    { url = "https://files.pythonhosted.org/packages/63/63/ccbeff2265ef5957f37f1d279c6dd78daeb4479aec1277f906385233d1f1/pycleora-2.0.0-cp312-none-win32.whl", hash = "sha256:0298282ff0e69e57df618a3f57cee1cb9071253ee6be2de2a03e4ff63a387e62", size = 309417 },
+    { url = "https://files.pythonhosted.org/packages/c1/bc/0636f45c4e8e472ce41821baf16364ba4574651b2d40da07ab4b25d97dbc/pycleora-2.0.0-cp312-none-win_amd64.whl", hash = "sha256:2870adbdf7e41ddcf34c8710fdbe9070fa395e74b8368bd3a62a39a98261a506", size = 316586 },
+    { url = "https://files.pythonhosted.org/packages/4a/96/831b36a0fc8b973ce8283b8238e7730944b43eeae37f4c1259077678481d/pycleora-2.0.0-pp310-pypy310_pp73-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:57975f0b5f71516bb014b1723587866f91c95921f10de82702c8ecded9ce30a4", size = 489765 },
+    { url = "https://files.pythonhosted.org/packages/bb/63/9edb08b5f3f7946ec08cdb046627982cd87536f2b595c34fad46883f4150/pycleora-2.0.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7f2e9e0b6e6fdaa8926a7ddfa5f227212beca3639805b1a4c8cb42deee8bc719", size = 441444 },
+    { url = "https://files.pythonhosted.org/packages/29/c5/7b01349ae0c7352f3b9a77c03e79a7cfafee17e3ea1cbc050a6b9c9dbbb0/pycleora-2.0.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f16c7b6a18ad81aa30721572bc52693e4afb7632fafda1b7233401613297a334", size = 452662 },
+]
+
+[[package]]
 name = "pycparser"
 version = "2.22"
 source = { registry = "https://pypi.org/simple" }
@@ -1960,6 +1989,7 @@ source = { editable = "." }
 dependencies = [
     { name = "polars" },
     { name = "pyarrow" },
+    { name = "pycleora" },
     { name = "scikit-learn" },
     { name = "seaborn" },
     { name = "torch" },
@@ -1983,6 +2013,7 @@ test = [
 requires-dist = [
     { name = "polars", specifier = ">=1.17.1" },
     { name = "pyarrow", specifier = ">=18.1.0" },
+    { name = "pycleora", specifier = ">=2.0.0" },
     { name = "scikit-learn", specifier = ">=1.6.0" },
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "torch", specifier = ">=2.5.1" },
